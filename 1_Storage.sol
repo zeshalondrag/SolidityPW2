@@ -109,6 +109,21 @@ contract EstateAgency {
     emit adStatusChanged(msg.sender, block.timestamp, idAd, ads[idAd].idEstate, AdStatus.Closed);
     }
 
+    function buyEstate(uint idEstate) public payable {
+        require(estates[idEstate].isActive, unicode"Данная недвижимость НЕ в статусе active");
+        require(msg.value >= ads[idEstate].price, unicode"Недостаточно средств для приобретения");
+        require(address(this).balance >= msg.value, unicode"Недостаточно средств на контракте");
+        require(estates[idEstate].owner != msg.sender, unicode"Вы не можете купить свою собственную недвижимость");
+
+        payable(estates[idEstate].owner).transfer(msg.value);
+
+        ads[idEstate].adStatus = AdStatus.Closed;
+        estates[idEstate].isActive = false;
+
+        balances[msg.sender] -= ads[idEstate].price;
+        emit fundsBack(address(this), msg.value, block.timestamp);
+        emit estatePurchased(estates[idEstate].owner, msg.sender, ads.length - 1, idEstate, AdStatus.Closed, block.timestamp, msg.value);
+    }
 
     function withdraw(uint256 _amount) public {
         require(_amount <= address(this).balance, unicode"Недостаточный баланс");
